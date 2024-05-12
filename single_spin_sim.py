@@ -9,10 +9,8 @@
 import argparse
 import cmath
 import math
+from mod_spin_operators import SingleSpin
 import numpy as np
-import random
-import sys
-import time
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QPushButton, QSlider, QLabel
 from PyQt6.QtWidgets import QVBoxLayout, QGridLayout
@@ -28,7 +26,12 @@ from OpenGL.GLU import gluPerspective, gluLookAt
 from OpenGL.GL import (
     GL_DEPTH_TEST, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
     GL_QUADS, GL_LINES, glFlush, GL_PROJECTION, GL_MODELVIEW)
-from mod_spin_operators import SingleSpin
+import random
+import sys
+import time
+from types import SimpleNamespace
+
+cfg = SimpleNamespace(stype=1, color=(1, 1, 1))
 
 description = (
     'This script simulates a single spin following quantum '
@@ -48,18 +51,19 @@ description = (
 
 
 class SimulationThread(QThread):
+    # Currently is not used but it is ready in case there is a time
+    # evolution for example updating with a magnetic field applied
     result = pyqtSignal(np.ndarray)
 
-    def __init__(self, simul_type: int):
+    def __init__(self):
         super().__init__()
-        self.simul_type = simul_type
         self.current_state = None
 
     def run(self):
         simul_spin = SingleSpin()
 
         # initial condition for the case needed
-        match self.simul_type:
+        match cfg.stype:
             case 1:
                 self.current_state = simul_spin.u
             case 2:
@@ -70,7 +74,7 @@ class SimulationThread(QThread):
                 self.current_state = simul_spin.u
             case _:
                 raise ValueError(
-                    f"Incorrect simulation type {self.simul_type}")
+                    f"Incorrect simulation type {cfg.stype}")
         while True:
             self.result.emit(self.current_state)
             time.sleep(1)  # slows down the loop for demonstration purposes
@@ -81,7 +85,7 @@ class SimulationThread(QThread):
 
 class OpenGLWidget(QOpenGLWidget):
 
-    def __init__(self, parent, simul_type: int, color: tuple):
+    def __init__(self, parent):
         super(OpenGLWidget, self).__init__(parent)
         self.a_theta = 0
         self.a_phi = 0
@@ -91,8 +95,6 @@ class OpenGLWidget(QOpenGLWidget):
         self.current_state = None
         self.num_measurements = 0
         self.spin = SingleSpin()
-        self.simul_type = simul_type
-        self.color = color
 
     @property
     def apparatus_direction(self):
@@ -114,7 +116,7 @@ class OpenGLWidget(QOpenGLWidget):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glColor3f(*self.color)
+        glColor3f(*cfg.color)
         # Adjust the camera view
         gluLookAt(0.0, -5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         glPushMatrix()
@@ -276,21 +278,18 @@ class OpenGLWidget(QOpenGLWidget):
 
 class MainWindow(QWidget):
 
-    def __init__(self, simul_type: int, color: tuple):
+    def __init__(self):
         super(MainWindow, self).__init__()
-        self.simul_type = simul_type
-        self.color = color
-
         self.initUI()
 
         self.current_state = None
-        self.simulation_thread = SimulationThread(simul_type)
+        self.simulation_thread = SimulationThread()
         self.simulation_thread.result.connect(self.store_simul_spin)
         self.simulation_thread.start()
 
     def initUI(self):
         self.setGeometry(300, 300, 800, 600)
-        match self.simul_type:
+        match cfg.stype:
             case 1:
                 desc = 'spin always |up>'
             case 2:
@@ -301,7 +300,7 @@ class MainWindow(QWidget):
                 desc = 'spin takes measurement direction'
         self.setWindowTitle(f"Single quantum spin simulation: {desc}")
 
-        self.opengl_widget = OpenGLWidget(self, self.simul_type, self.color)
+        self.opengl_widget = OpenGLWidget(self)
 
         self.slider1 = QSlider(Qt.Orientation.Horizontal, self)
         self.slider1.setRange(0, 360)
@@ -339,7 +338,7 @@ class MainWindow(QWidget):
 
     def on_button_clicked(self):
         self.opengl_widget.measure(self.current_state)
-        match self.simul_type:
+        match cfg.stype:
             case 1 | 2 | 3:
                 pass
             case 4:
@@ -372,16 +371,15 @@ def main():
     parser.add_argument('-t', '--simul_type', help='simulation type',
                         required=False)
     parser.add_argument('-c', '--color', type=parse_color,
-                        default=(1.0, 1.0, 1.0),
                         help='Set the apparatus color as comma-separated '
                         'RGB values (0-255). Example: -c 255,0,0')
     args = parser.parse_args()
     if (args.simul_type):
-        simul_type = int(args.simul_type)
-    else:
-        simul_type = 1
+        cfg.stype = int(args.simul_type)
+    if (args.color):
+        cfg.color = args.color
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow(simul_type, args.color)
+    window = MainWindow()
     window.show()
     sys.exit(app.exec())
 

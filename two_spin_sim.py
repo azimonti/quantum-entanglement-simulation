@@ -8,10 +8,8 @@
 '''
 import argparse
 import math
+from mod_spin_operators import SingleSpin, TwolSpins
 import numpy as np
-import random
-import sys
-import time
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QPushButton, QSlider, QLabel
 from PyQt6.QtWidgets import QVBoxLayout, QGridLayout
@@ -27,7 +25,13 @@ from OpenGL.GLU import gluPerspective, gluLookAt
 from OpenGL.GL import (
     GL_DEPTH_TEST, GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT,
     GL_QUADS, GL_LINES, glFlush, GL_PROJECTION, GL_MODELVIEW)
-from mod_spin_operators import SingleSpin, TwolSpins
+import random
+import sys
+import time
+from types import SimpleNamespace
+
+cfg = SimpleNamespace(
+    stype=3, m=False, color_left=(0, 1, 0), color_right=(1, 0, 0))
 
 description = (
     'This script simulates two spins following '
@@ -65,18 +69,19 @@ description = (
 
 
 class SimulationThread(QThread):
+    # Currently is not used but it is ready in case there is a time
+    # evolution for example updating with a magnetic field applied
     result = pyqtSignal(np.ndarray)
 
-    def __init__(self, simul_type: int):
+    def __init__(self):
         super().__init__()
-        self.simul_type = simul_type
         self.current_state = None
 
     def run(self):
         spin = TwolSpins()
         s = SingleSpin()
         # initial condition for the case needed
-        match self.simul_type:
+        match cfg.stype:
             case 1:
                 A = s.u
                 B = s.d
@@ -98,7 +103,7 @@ class SimulationThread(QThread):
                     np.sqrt(0.4) * spin.BasisVector('du')
             case _:
                 raise ValueError(
-                    f"Incorrect simulation type {self.simul_type}")
+                    f"Incorrect simulation type {cfg.stype}")
         while True:
             self.current_state = spin.psi
             self.result.emit(self.current_state)
@@ -107,13 +112,8 @@ class SimulationThread(QThread):
 
 class OpenGLWidget(QOpenGLWidget):
 
-    def __init__(self, parent, simul_type: int, measure_both: bool,
-                 color_left: tuple, color_right: tuple):
+    def __init__(self, parent):
         super(OpenGLWidget, self).__init__(parent)
-        self.simul_type = simul_type
-        self.measure_both = measure_both
-        self.color_left = color_left
-        self.color_right = color_right
         self.a_thetaA = 0
         self.a_phiA = 0
         self.measurementA = None
@@ -150,11 +150,11 @@ class OpenGLWidget(QOpenGLWidget):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glColor3f(*self.color_left)
         # Adjust the camera view
         gluLookAt(0.0, -5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         glTranslatef(-3.0, 0.0, 0.0)  # Move to the left
         glPushMatrix()
+        glColor3f(*cfg.color_left)
         glMatrixMode(GL_MODELVIEW)
         # Rotate the rectangle along Y-axis
         a_theta_deg = math.degrees(self.a_thetaA)
@@ -165,8 +165,8 @@ class OpenGLWidget(QOpenGLWidget):
         self.drawRectangleAndArrow()
         glPopMatrix()
         glTranslatef(6.0, 0.0, 0.0)  # Move to the right
-        glColor3f(*self.color_right)
         glPushMatrix()
+        glColor3f(*cfg.color_right)
         glMatrixMode(GL_MODELVIEW)
         # Rotate the rectangle along Y-axis
         a_theta_deg = math.degrees(self.a_thetaB)
@@ -297,7 +297,7 @@ class OpenGLWidget(QOpenGLWidget):
             rect = QRect(0, 0, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"Correlation <σ^Az> <σ^Bz> = {corrz:.2f}")
-            if (self.measure_both):
+            if (cfg.m):
                 y = int(0.25 * self.height() + 55)
                 corrm = np.corrcoef(self.sigma['A']['th_ph'],
                                     self.sigma['B']['th_ph'])[0, 1]
@@ -384,7 +384,7 @@ class OpenGLWidget(QOpenGLWidget):
                                   np.array([directionBp, directionBm]), True)
             self.sigma['A']['th_ph'].append(sp[0])
             self.updateCountA(sp[0])
-            if self.measure_both:
+            if cfg.m:
                 self.sigma['B']['th_ph'].append(sp[1])
                 self.updateCountB(sp[1])
         else:
@@ -392,7 +392,7 @@ class OpenGLWidget(QOpenGLWidget):
                                   np.array([directionBp, directionBm]), False)
             self.sigma['B']['th_ph'].append(sp[1])
             self.updateCountB(sp[1])
-            if self.measure_both:
+            if cfg.m:
                 self.sigma['A']['th_ph'].append(sp[0])
                 self.updateCountA(sp[0])
 
@@ -489,24 +489,18 @@ class OpenGLWidget(QOpenGLWidget):
 
 class MainWindow(QWidget):
 
-    def __init__(self, simul_type: int, measure_both: bool,
-                 color_left: tuple, color_right: tuple):
+    def __init__(self):
         super(MainWindow, self).__init__()
-        self.simul_type = simul_type
-        self.measure_both = measure_both
-        self.color_left = color_left
-        self.color_right = color_right
-
         self.initUI()
 
         self.current_state = None
-        self.simulation_thread = SimulationThread(simul_type)
+        self.simulation_thread = SimulationThread()
         self.simulation_thread.result.connect(self.store_simul_spin)
         self.simulation_thread.start()
 
     def initUI(self):
         self.setGeometry(300, 300, 800, 600)
-        match self.simul_type:
+        match cfg.stype:
             case 1:
                 desc = 'Product state: A = | u > B = | d >'
             case 2:
@@ -530,9 +524,7 @@ class MainWindow(QWidget):
 
         self.setWindowTitle(f"Two quantum spins simulation - {desc}")
 
-        self.opengl_widget = OpenGLWidget(
-            self, self.simul_type, self.measure_both,
-            self.color_left, self.color_right)
+        self.opengl_widget = OpenGLWidget(self)
 
         self.slider1A = QSlider(Qt.Orientation.Horizontal, self)
         self.slider1A.setRange(0, 360)
@@ -625,28 +617,25 @@ def main():
     parser.add_argument('-m', '--measure_both', action='store_true',
                         help='Measure both systems', required=False)
     parser.add_argument('-l', '--color_left', type=parse_color,
-                        default=(0.0, 1.0, 0.0),
                         help='Set the left apparatus color as comma-separated'
-                        ' RGB values (0-255). Example: -c 0,255,0 -'
+                        ' RGB values (0-255). Example: -l 0,255,0 -'
                         ' Default: green')
     parser.add_argument('-r', '--color_right', type=parse_color,
-                        default=(1.0, 0.0, 0.0),
                         help='Set the right apparatus color as comma-separated'
-                        ' RGB values (0-255). Example: -c 255,0,0 -'
+                        ' RGB values (0-255). Example: -r 255,0,0 -'
                         ' Default: red')
 
     args = parser.parse_args()
     if (args.simul_type):
-        simul_type = int(args.simul_type)
-    else:
-        simul_type = 3
+        cfg.stype = int(args.simul_type)
     if (args.measure_both):
-        measure_both = True
-    else:
-        measure_both = False
+        cfg.m = True
+    if (args.color_left):
+        cfg.color_left = args.color_left
+    if (args.color_right):
+        cfg.color_right = args.color_right
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow(simul_type, measure_both,
-                        args.color_left, args.color_right)
+    window = MainWindow()
     window.show()
     sys.exit(app.exec())
 
