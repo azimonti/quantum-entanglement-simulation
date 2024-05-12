@@ -29,39 +29,39 @@ from OpenGL.GL import (
     GL_QUADS, GL_LINES, glFlush, GL_PROJECTION, GL_MODELVIEW)
 from mod_spin_operators import SingleSpin, TwolSpins
 
-description = '''
-This script simulate a two spins following quantum mechanics principles.
-
-Simulation types available (-t SIMUL_TYPE, --simul_type SIMUL_TYPE):
-
-NO Time evolution
-1 - Product state
-    A = | u >
-    B = | d >
-2 - Product state
-    A = 1 / sqrt(2) * (| u > + | d >)
-    B = | u > / 2 + sqrt(3) / 2 * | d >
-3 - Singlet state
-    | Psi > = 1 / sqrt(2) ( | ud > - | du > ) [DEFAULT]
-4 - Triplet state I
-    | Psi > = 1 / sqrt(2) ( | ud > + | du > )
-5 - Triplet state II
-    | Psi > = 1 / sqrt(2) ( | uu > + | dd > )
-6 - Triplet state III
-    | Psi > = 1 / sqrt(2) ( | uu > - | dd > )
-7 - Partially entangled state
-    | Psi > = sqrt(0.6) | ud > - sqrt(0.4) | du > )
-    It requires a few hundrends measurements to show the correct
-    correlation σ^z = 1.00, σ^x = σ^y = 0.98
-
-
-The program is measuring each component separately when any of the two
-measure button is pressed and resetting the status. it is possible to
-measure both system as the same time when one of the measure button is
-pressed and the correlation between these measurement is shown setting
-the command line option "-m, --measure_both" (default = False)
-
-'''
+description = (
+    'This script simulates two spins following '
+    'quantum mechanics principles.\n\n'
+    'Simulation types available (-t SIMUL_TYPE, --simul_type SIMUL_TYPE):\n'
+    '0 - No Time evolution\n'
+    '1 - Product state\n'
+    '    A = | u >\n'
+    '    B = | d >\n'
+    '2 - Product state\n'
+    '    A = 1 / sqrt(2) * (| u > + | d >)\n'
+    '    B = | u > / 2 + sqrt(3) / 2 * | d >\n'
+    '3 - Singlet state\n'
+    '    | Psi > = 1 / sqrt(2) * (| ud > - | du >) [DEFAULT]\n'
+    '4 - Triplet state I\n'
+    '    | Psi > = 1 / sqrt(2) * (| ud > + | du >)\n'
+    '5 - Triplet state II\n'
+    '    | Psi > = 1 / sqrt(2) * (| uu > + | dd >)\n'
+    '6 - Triplet state III\n'
+    '    | Psi > = 1 / sqrt(2) * (| uu > - | dd >)\n'
+    '7 - Partially entangled state\n'
+    '    | Psi > = sqrt(0.6) * | ud > - sqrt(0.4) * | du >\n'
+    '    It requires a few hundred measurements to show the '
+    'correct correlation σ^z = 1.00, σ^x = σ^y = 0.98\n\n'
+    'The program measures each component separately when any of the '
+    'two measure buttons is pressed and resets the status.\n'
+    'It is possible to measure both systems at the same time when one of '
+    'the measure buttons is pressed and the correlation between these '
+    'measurements is shown setting the command line option '
+    '"-m, --measure_both" (default = False).\n\n'
+    'It is possible to set the color for the left and right apparatus '
+    'with the command line option "-l, --color_left" (default = green) '
+    'and "-r, --color_right (default = red).'
+)
 
 
 class SimulationThread(QThread):
@@ -75,7 +75,6 @@ class SimulationThread(QThread):
     def run(self):
         spin = TwolSpins()
         s = SingleSpin()
-
         # initial condition for the case needed
         match self.simul_type:
             case 1:
@@ -108,10 +107,13 @@ class SimulationThread(QThread):
 
 class OpenGLWidget(QOpenGLWidget):
 
-    def __init__(self, parent, simul_type: int, measure_both: bool):
+    def __init__(self, parent, simul_type: int, measure_both: bool,
+                 color_left: tuple, color_right: tuple):
         super(OpenGLWidget, self).__init__(parent)
         self.simul_type = simul_type
         self.measure_both = measure_both
+        self.color_left = color_left
+        self.color_right = color_right
         self.a_thetaA = 0
         self.a_phiA = 0
         self.measurementA = None
@@ -148,7 +150,7 @@ class OpenGLWidget(QOpenGLWidget):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glColor3f(0.0, 1.0, 0.0)  # Set color to green
+        glColor3f(*self.color_left)
         # Adjust the camera view
         gluLookAt(0.0, -5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         glTranslatef(-3.0, 0.0, 0.0)  # Move to the left
@@ -163,7 +165,7 @@ class OpenGLWidget(QOpenGLWidget):
         self.drawRectangleAndArrow()
         glPopMatrix()
         glTranslatef(6.0, 0.0, 0.0)  # Move to the right
-        glColor3f(1.0, 0.0, 0.0)  # Set color to red
+        glColor3f(*self.color_right)
         glPushMatrix()
         glMatrixMode(GL_MODELVIEW)
         # Rotate the rectangle along Y-axis
@@ -246,7 +248,6 @@ class OpenGLWidget(QOpenGLWidget):
             rect = QRect(0, 0, tq_width, self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"< σ^Bz > = {sbz:.2f}")
-
             y = int(0.25 * self.height() + 55)
             rect = QRect(0, y, tq_width, self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
@@ -270,7 +271,11 @@ class OpenGLWidget(QOpenGLWidget):
 
         if (len(self.sigma['A']['th_ph']) > 0) and \
                 (len(self.sigma['B']['th_ph']) > 0) and \
-                (len(self.sigma['A']['z']) > 2):
+                (len(self.sigma['A']['z']) > 3):
+            # with limited number of measurements, the following
+            # warning might appears.
+            # RuntimeWarning: invalid value encountered in divide
+            # c /= stddev[None, :]
             corrz = np.corrcoef(self.sigma['A']['z'],
                                 self.sigma['B']['z'])[0, 1]
             corrx = np.corrcoef(self.sigma['A']['x'],
@@ -300,7 +305,6 @@ class OpenGLWidget(QOpenGLWidget):
                 painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                                  f"Correlation <σ^Am> <σ^Bm> = {corrm:.2f}")
             painter.end()
-
         glFlush()
 
     def drawRectangleAndArrow(self):
@@ -485,10 +489,13 @@ class OpenGLWidget(QOpenGLWidget):
 
 class MainWindow(QWidget):
 
-    def __init__(self, simul_type: int, measure_both: bool):
+    def __init__(self, simul_type: int, measure_both: bool,
+                 color_left: tuple, color_right: tuple):
         super(MainWindow, self).__init__()
         self.simul_type = simul_type
         self.measure_both = measure_both
+        self.color_left = color_left
+        self.color_right = color_right
 
         self.initUI()
 
@@ -524,7 +531,8 @@ class MainWindow(QWidget):
         self.setWindowTitle(f"Two quantum spins simulation - {desc}")
 
         self.opengl_widget = OpenGLWidget(
-            self, self.simul_type, self.measure_both)
+            self, self.simul_type, self.measure_both,
+            self.color_left, self.color_right)
 
         self.slider1A = QSlider(Qt.Orientation.Horizontal, self)
         self.slider1A.setRange(0, 360)
@@ -599,6 +607,13 @@ class CustomHelpFormatter(argparse.HelpFormatter):
         return "\n".join([indent + line for line in text.splitlines()])
 
 
+def parse_color(color_string):
+    """Parse a comma-separated RGB string and normalize it
+    to a tuple of floats."""
+    rgb = tuple(int(x) for x in color_string.split(','))
+    return tuple(c / 255.0 for c in rgb)
+
+
 def main():
     # Set a fixed seed value
     seed_value = 5948
@@ -609,6 +624,16 @@ def main():
                         required=False)
     parser.add_argument('-m', '--measure_both', action='store_true',
                         help='Measure both systems', required=False)
+    parser.add_argument('-l', '--color_left', type=parse_color,
+                        default=(0.0, 1.0, 0.0),
+                        help='Set the left apparatus color as comma-separated'
+                        ' RGB values (0-255). Example: -c 0,255,0 -'
+                        ' Default: green')
+    parser.add_argument('-r', '--color_right', type=parse_color,
+                        default=(1.0, 0.0, 0.0),
+                        help='Set the right apparatus color as comma-separated'
+                        ' RGB values (0-255). Example: -c 255,0,0 -'
+                        ' Default: red')
 
     args = parser.parse_args()
     if (args.simul_type):
@@ -620,7 +645,8 @@ def main():
     else:
         measure_both = False
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow(simul_type, measure_both)
+    window = MainWindow(simul_type, measure_both,
+                        args.color_left, args.color_right)
     window.show()
     sys.exit(app.exec())
 

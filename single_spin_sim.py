@@ -30,20 +30,21 @@ from OpenGL.GL import (
     GL_QUADS, GL_LINES, glFlush, GL_PROJECTION, GL_MODELVIEW)
 from mod_spin_operators import SingleSpin
 
-description = '''
-This script simulate a single spin following quantum mechanics principles.
-
-Simulation types available (-t SIMUL_TYPE, --simul_type SIMUL_TYPE):
-
-NO Time evolution
-1 - The spin is prepared to be always in the up direction (reset at
-each time step) [DEFAULT]
-2 - The spin is prepared to be always in the left direction (reset at
-each time step)
-2 - The spin is prepared to be always in the inner direction (reset at
-each time step)
-4 - The spin is collapsed in the direction of the measurement
-'''
+description = (
+    'This script simulates a single spin following quantum '
+    'mechanics principles.\n'
+    'Simulation types available (-t SIMUL_TYPE, --simul_type SIMUL_TYPE):\n'
+    '0 - No Time evolution\n'
+    '1 - The spin is prepared to be always in the up direction'
+    '(reset at each time step) [DEFAULT]\n'
+    '2 - The spin is prepared to be always in the left direction'
+    '(reset at each time step)\n'
+    '3 - The spin is prepared to be always in the inner direction'
+    '(reset at each time step)\n'
+    '4 - The spin is collapsed in the direction of the measurement\n\n'
+    'It is possible to set the color for apparatus with the '
+    'command line option "-c, --color" (default = white).'
+)
 
 
 class SimulationThread(QThread):
@@ -80,7 +81,7 @@ class SimulationThread(QThread):
 
 class OpenGLWidget(QOpenGLWidget):
 
-    def __init__(self, parent, simul_type: int):
+    def __init__(self, parent, simul_type: int, color: tuple):
         super(OpenGLWidget, self).__init__(parent)
         self.a_theta = 0
         self.a_phi = 0
@@ -91,6 +92,7 @@ class OpenGLWidget(QOpenGLWidget):
         self.num_measurements = 0
         self.spin = SingleSpin()
         self.simul_type = simul_type
+        self.color = color
 
     @property
     def apparatus_direction(self):
@@ -112,7 +114,7 @@ class OpenGLWidget(QOpenGLWidget):
     def paintGL(self):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
-        glColor3f(1.0, 1.0, 1.0)
+        glColor3f(*self.color)
         # Adjust the camera view
         gluLookAt(0.0, -5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         glPushMatrix()
@@ -274,9 +276,10 @@ class OpenGLWidget(QOpenGLWidget):
 
 class MainWindow(QWidget):
 
-    def __init__(self, simul_type: int):
+    def __init__(self, simul_type: int, color: tuple):
         super(MainWindow, self).__init__()
         self.simul_type = simul_type
+        self.color = color
 
         self.initUI()
 
@@ -298,7 +301,7 @@ class MainWindow(QWidget):
                 desc = 'spin takes measurement direction'
         self.setWindowTitle(f"Single quantum spin simulation: {desc}")
 
-        self.opengl_widget = OpenGLWidget(self, self.simul_type)
+        self.opengl_widget = OpenGLWidget(self, self.simul_type, self.color)
 
         self.slider1 = QSlider(Qt.Orientation.Horizontal, self)
         self.slider1.setRange(0, 360)
@@ -353,6 +356,13 @@ class CustomHelpFormatter(argparse.HelpFormatter):
         return "\n".join([indent + line for line in text.splitlines()])
 
 
+def parse_color(color_string):
+    """Parse a comma-separated RGB string and normalize it
+    to a tuple of floats."""
+    rgb = tuple(int(x) for x in color_string.split(','))
+    return tuple(c / 255.0 for c in rgb)
+
+
 def main():
     # Set a fixed seed value
     seed_value = 5692
@@ -361,14 +371,17 @@ def main():
                                      formatter_class=CustomHelpFormatter)
     parser.add_argument('-t', '--simul_type', help='simulation type',
                         required=False)
-
+    parser.add_argument('-c', '--color', type=parse_color,
+                        default=(1.0, 1.0, 1.0),
+                        help='Set the apparatus color as comma-separated '
+                        'RGB values (0-255). Example: -c 255,0,0')
     args = parser.parse_args()
     if (args.simul_type):
         simul_type = int(args.simul_type)
     else:
         simul_type = 1
     app = QtWidgets.QApplication(sys.argv)
-    window = MainWindow(simul_type)
+    window = MainWindow(simul_type, args.color)
     window.show()
     sys.exit(app.exec())
 
