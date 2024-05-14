@@ -160,19 +160,18 @@ class OpenGLWidget(QOpenGLWidget):
                              f"Measurement: {self.measurement}")
             y = int(0.25 * self.height() + 55)
             rect = QRect(0, y, self.width(), self.height() - y)
-            prob_p1 = self.count_p1 / self.num_measurements
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"Total Measurements: {self.num_measurements}")
             y = int(0.25 * self.height() + 90)
             rect = QRect(0, y, self.width(), self.height() - y)
-            prob_p1 = self.count_p1 / self.num_measurements
+            prob_p1 = self.count_p1 / self.num_measurements * 100
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< +1 > = {prob_p1:.2f}")
+                             f"< +1 > = {prob_p1:.1f}%")
             y = int(0.25 * self.height() + 125)
             rect = QRect(0, y, self.width(), self.height() - y)
-            prob_m1 = self.count_m1 / self.num_measurements
+            prob_m1 = self.count_m1 / self.num_measurements * 100
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< -1 > = {prob_m1:.2f}")
+                             f"< -1 > = {prob_m1:.1f}%")
 
             y = int(0.75 * self.height() - 40)
             x = int(0.25 * self.width())
@@ -218,9 +217,9 @@ class OpenGLWidget(QOpenGLWidget):
             # convert angle difference from radians to degrees
             angle_difference_degrees = np.degrees(angle_difference)
             cos_half_alpha_2 = np.cos(
-                np.deg2rad(angle_difference_degrees / 2))**2
+                np.deg2rad(angle_difference_degrees / 2))**2 * 100
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"cos(θ_mn/2)^2: {cos_half_alpha_2:.2f}")
+                             f"cos(θ_mn/2)^2(in %): {cos_half_alpha_2:.1f}%")
             painter.end()
 
             # Apply the rotation - Order is important

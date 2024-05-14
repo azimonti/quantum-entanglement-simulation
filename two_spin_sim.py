@@ -213,14 +213,14 @@ class OpenGLWidget(QOpenGLWidget):
                 f"Total Measurements: {len(self.sigma['A']['th_ph'])}")
             y = int(0.25 * self.height() + 125)
             rect = QRect(0, y, half_width, self.height() - y)
-            prob_p1 = self.count_p1A / len(self.sigma['A']['th_ph'])
+            prob_p1 = self.count_p1A / len(self.sigma['A']['th_ph']) * 100
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f" < +1 > = {prob_p1:.2f}")
+                             f" < +1 > = {prob_p1:.1f}%")
             y = int(0.25 * self.height() + 160)
             rect = QRect(0, y, half_width, self.height() - y)
-            prob_m1 = self.count_m1A / len(self.sigma['A']['th_ph'])
+            prob_m1 = self.count_m1A / len(self.sigma['A']['th_ph']) * 100
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< -1 > = {prob_m1:.2f}")
+                             f"< -1 > = {prob_m1:.1f}%")
             painter.end()
 
         if len(self.sigma['B']['th_ph']) > 0:
@@ -259,14 +259,14 @@ class OpenGLWidget(QOpenGLWidget):
                 f"Total Measurements: {len(self.sigma['B']['th_ph'])}")
             y = int(0.25 * self.height() + 125)
             rect = QRect(0, y, tq_width, self.height() - y)
-            prob_p1 = self.count_p1B / len(self.sigma['B']['th_ph'])
+            prob_p2 = self.count_p1B / len(self.sigma['B']['th_ph']) * 100
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< +1 > = {prob_p1:.2f}")
+                             f"< +1 > = {prob_p2:.1f}%")
             y = int(0.25 * self.height() + 160)
             rect = QRect(0, y, tq_width, self.height() - y)
-            prob_m1 = self.count_m1B / len(self.sigma['B']['th_ph'])
+            prob_m2 = self.count_m1B / len(self.sigma['B']['th_ph']) * 100
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< -1 > = {prob_m1:.2f}")
+                             f"< -1 > = {prob_m2:.1f}%")
             painter.end()
 
         if (len(self.sigma['A']['th_ph']) > 0) and \
