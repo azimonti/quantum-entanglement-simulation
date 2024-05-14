@@ -8,7 +8,7 @@
 '''
 import argparse
 import math
-from mod_spin_operators import SingleSpin, TwolSpins
+from mod_spin_operators import SingleSpin, TwoSpin
 import numpy as np
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QPushButton, QSlider, QLabel
@@ -34,7 +34,7 @@ cfg = SimpleNamespace(
     stype=3, m=False, color_left=(0, 1, 0), color_right=(1, 0, 0))
 
 description = (
-    'This script simulates two spins following '
+    'This script simulates two spin following '
     'quantum mechanics principles.\n\n'
     'Simulation types available (-t SIMUL_TYPE, --simul_type SIMUL_TYPE):\n'
     '0 - No Time evolution\n'
@@ -78,7 +78,7 @@ class SimulationThread(QThread):
         self.current_state = None
 
     def run(self):
-        spin = TwolSpins()
+        spin = TwoSpin()
         s = SingleSpin()
         # initial condition for the case needed
         match cfg.stype:
@@ -522,7 +522,7 @@ class MainWindow(QWidget):
                 desc = 'Partially entangled state: '\
                     '| Psi > = sqrt(0.6) | ud > - sqrt(0.4) | du >'
 
-        self.setWindowTitle(f"Two quantum spins simulation - {desc}")
+        self.setWindowTitle(f"Two quantum spin simulation - {desc}")
 
         self.opengl_widget = OpenGLWidget(self)
 

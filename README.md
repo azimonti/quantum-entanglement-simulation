@@ -4,6 +4,8 @@ Welcome to the Quantum Mechanics Spin Simulation repository. This Python-based p
 
 ## Single spin simulation
 
+![Single spin simulation with a custom color](screenshots/single_spin.png)
+
 The single spin simulation script allows users to simulate the quantum mechanics of a single spin system. Users can specify the orientation of a measurement apparatus in three-dimensional space and observe the behavior of a quantum spin subjected to this configuration. The simulation outputs include the probabilities of the spin aligning in either the up or down state and can be visualized in real-time to aid in understanding quantum superposition and measurement collapse.
 
 ### Features:
@@ -13,6 +15,8 @@ The single spin simulation script allows users to simulate the quantum mechanics
 - **Measurement Repeatability:** Simulate consecutive measurements to observe the quantum mechanical property of state collapse.
 
 ## Two spin simulation
+
+![Two spin simulation](screenshots/two_spin.png)
 
 The two spin simulation script extends the capabilities of the single spin simulator by introducing interactions between two spins. This script includes various predefined states such as entangled states and product states, allowing users to simulate complex quantum phenomena like entanglement and spin correlation.
 
@@ -27,6 +31,8 @@ The two spin simulation script extends the capabilities of the single spin simul
 - **Statistical Analysis:** The script provides detailed statistics on spin states and their correlations after multiple measurements, essential for understanding entanglement.
 
 ## EPR experiment
+
+![EPR Experiment](screenshots/epr.png)
 
 The EPR Experiment script simulates two entangled spins following the principles of quantum mechanics. It is designed to demonstrate the violation of Bell's theorem, highlighting the impossibility of hidden variables in quantum systems.
 

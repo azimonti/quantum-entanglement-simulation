@@ -127,7 +127,7 @@ class SingleSpin:
         return [self.theta(), self.phi()]
 
 
-class TwolSpins:
+class TwoSpin:
 
     def __init__(self, basis: str = 'ud'):
         self.__basis = basis

@@ -8,7 +8,7 @@
 '''
 import argparse
 import math
-from mod_spin_operators import TwolSpins
+from mod_spin_operators import TwoSpin
 import numpy as np
 from PyQt6 import QtWidgets
 from PyQt6.QtWidgets import QPushButton, QLabel
@@ -39,7 +39,7 @@ cfg = SimpleNamespace(
     invert=True, theta1=0, phi1=0, theta2=0, phi2=0)
 
 description = (
-    'This script simulates two entangled spins following '
+    'This script simulates two entangled spin following '
     'quantum mechanics principles.\n\n'
     'It can be used to simulate the violation of Bell\'s theorem'
     'and therefore the impossibility of the presence of hidden variables.\n\n'
@@ -94,7 +94,7 @@ class OpenGLWidget(QOpenGLWidget):
         self.switches2 = np.array([], dtype=int)
 
         # Set the Spin Type
-        spin = TwolSpins()
+        spin = TwoSpin()
         match cfg.stype:
             case 1:
                 spin.Singlet()
