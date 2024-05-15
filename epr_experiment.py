@@ -431,11 +431,19 @@ class OpenGLWidget(QOpenGLWidget):
                 self.measurements1 == -1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"< color 2 > = {prob_m1*100:.1f}%")
-
+            # Invert back the results for apparatus 2 if in the config,
+            # for correctly displaying the measurement as it would be
+            # if the apparatus measure it (so if apparatus 1 shows +1
+            # and both are using the same switch, apparatus 2 should
+            # show -1 if it is a singlet
+            if cfg.invert:
+                measurement2_disp = -1 * self.measurement2
+            else:
+                measurement2_disp = self.measurement2
             y = int(0.25 * self.height() + base1 + 0 * step)
             rect = QRect(0, y, tq_width, self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"Measurement: {self.measurement2}")
+                             f"Measurement: {measurement2_disp}")
             y = int(0.25 * self.height() + base1 + 1 * step)
             rect = QRect(0, y, tq_width, self.height() - y)
             prob_p2 = np.count_nonzero(
@@ -453,6 +461,10 @@ class OpenGLWidget(QOpenGLWidget):
             diff_mask = self.switches1 != self.switches2
             num_same = np.sum(same_mask)
             num_diff = np.sum(diff_mask)
+
+            # Count occurrences where measurements have
+            # the same value
+            equal = np.sum(self.measurements1 == self.measurements2)
             # Count occurrences where measurements have
             # the same value for same_mask
             if num_same > 0:
@@ -500,11 +512,12 @@ class OpenGLWidget(QOpenGLWidget):
             y = int(0.25 * self.height() + base1 + 0 * step)
             rect = QRect(0, y, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             "Total Measurements")
+                             f"Total Measurements: {measurements_nb}")
             y = int(0.25 * self.height() + base1 + 1 * step)
             rect = QRect(0, y, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"{measurements_nb}")
+                             "% same results = "
+                             f"{equal/measurements_nb*100:.1f}%")
 
         painter.end()
         glEnable(GL_DEPTH_TEST)
