@@ -36,7 +36,8 @@ from types import SimpleNamespace
 
 cfg = SimpleNamespace(
     stype=1, n=100, color_up=[0, 1, 0], color_down=[1, 0, 0],
-    invert=True, theta1=0, phi1=0, theta2=0, phi2=0)
+    invert=True, theta1=0, phi1=0, theta2=0, phi2=0,
+    appthetaL=240, appthetaC=0, appthetaR=120, experiment=-1)
 
 description = (
     'This script simulates two entangled spin following '
@@ -73,7 +74,20 @@ description = (
     'The equivalent result (100% agreement if in the same direction '
     'and 25% otherwise with the following configurations:\n'
     '1 - invert = True - theta2 = 0° (both apparatus same direction).\n'
-    '2 - invert = False - theta2 = 180° (second apparatus upside down).\n'
+    '2 - invert = False - theta2 = 180° (second apparatus upside down).\n\n'
+    'For convenience, two set of experiments can be selected with the '
+    'command line option "-e, --experiment", and the variables will be set '
+    'automatically:\n'
+    '1 - The detectors are three Stern-Gerlach magnets one oriented along '
+    'the z axis and the other two in the zx plane with ±120° rotation.\n'
+    '    The particles are two entangled electrons in the singlet state.\n'
+    '2 - The apparatus is composed by two polarizers which send two photons '
+    'to three photodectors, one oriented along the z axis and the other two '
+    'in the zx plane with 22.5° and 67.5° rotation.\n'
+    '    The particles are two entangled photons in the second triplet '
+    ' state | Psi > = 1 / sqrt(2) ( | uu > + | dd > ).'
+    'Selecting either of these experiment will ignore any physical variable '
+    'set from the command line (e.g. theta1, theta2, ..).\n'
 )
 
 
@@ -108,13 +122,12 @@ class OpenGLWidget(QOpenGLWidget):
                 raise ValueError(
                     f"Incorrect simulation type {self.simul_type}")
         self.current_state = spin.psi
-
-        # Initialize the directions which have a 120° rotation between
+        # Initialize the directions which have a defined rotation between
         # each other
         # First apparatus
-        theta_i = (cfg.theta1 + 240) * np.pi / 180
-        theta_j = (cfg.theta1) * np.pi / 180
-        theta_k = (cfg.theta1 + 120) * np.pi / 180
+        theta_i = (cfg.theta1 + cfg.appthetaL) * np.pi / 180
+        theta_j = (cfg.theta1 + cfg.appthetaC) * np.pi / 180
+        theta_k = (cfg.theta1 + cfg.appthetaR) * np.pi / 180
         phi_i = cfg.phi1 * np.pi / 180
         self.direction1p = np.array([
             [
@@ -130,9 +143,9 @@ class OpenGLWidget(QOpenGLWidget):
                 np.exp(1j * phi_i) * np.sin(theta_k / 2)
             ]
         ])
-        theta_i = (cfg.theta1 + 240) * np.pi / 180 + np.pi
-        theta_j = (cfg.theta1) * np.pi / 180 + np.pi
-        theta_k = (cfg.theta1 + 120) * np.pi / 180 + np.pi
+        theta_i = (cfg.theta1 + cfg.appthetaL) * np.pi / 180 + np.pi
+        theta_j = (cfg.theta1 + cfg.appthetaC) * np.pi / 180 + np.pi
+        theta_k = (cfg.theta1 + cfg.appthetaR) * np.pi / 180 + np.pi
         phi_i = cfg.phi1 * np.pi / 180
         self.direction1m = np.array([
             [
@@ -149,9 +162,9 @@ class OpenGLWidget(QOpenGLWidget):
             ]
         ])
         # Second apparatus
-        theta_i = (cfg.theta2 + 240) * np.pi / 180
-        theta_j = (cfg.theta2) * np.pi / 180
-        theta_k = (cfg.theta2 + 120) * np.pi / 180
+        theta_i = (cfg.theta2 + cfg.appthetaL) * np.pi / 180
+        theta_j = (cfg.theta2 + cfg.appthetaC) * np.pi / 180
+        theta_k = (cfg.theta2 + cfg.appthetaR) * np.pi / 180
         phi_i = cfg.phi2 * np.pi / 180
         self.direction2p = np.array([
             [
@@ -167,10 +180,9 @@ class OpenGLWidget(QOpenGLWidget):
                 np.exp(1j * phi_i) * np.sin(theta_k / 2)
             ]
         ])
-
-        theta_i = (cfg.theta2 + 240) * np.pi / 180 + np.pi
-        theta_j = (cfg.theta2) * np.pi / 180 + np.pi
-        theta_k = (cfg.theta2 + 120) * np.pi / 180 + np.pi
+        theta_i = (cfg.theta2 + cfg.appthetaL) * np.pi / 180 + np.pi
+        theta_j = (cfg.theta2 + cfg.appthetaC) * np.pi / 180 + np.pi
+        theta_k = (cfg.theta2 + cfg.appthetaR) * np.pi / 180 + np.pi
         phi_i = cfg.phi2 * np.pi / 180
         self.direction2m = np.array([
             [
@@ -332,12 +344,12 @@ class OpenGLWidget(QOpenGLWidget):
         theta = cfg.theta1 if app1 else cfg.theta2
         phi = cfg.phi1 if app1 else cfg.phi2
         glPushMatrix()
-        if n == 1:
+        if n == 0:
             glColor3f(1, 0.6, 0.2)
         else:
             glColor3f(0.97, 0.97, 0.97)
         glRotatef(-phi, 0.0, 0.0, 1.0)
-        glRotatef(theta, 0, 1, 0)
+        glRotatef(cfg.appthetaL + theta, 0, 1, 0)
         glBegin(GL_LINES)
         glVertex3f(0., 0, 0)
         glVertex3f(0., 0, 2.2)
@@ -348,12 +360,12 @@ class OpenGLWidget(QOpenGLWidget):
         glEnd()
         glPopMatrix()
         glPushMatrix()
-        if n == 0:
+        if n == 1:
             glColor3f(1, 0.6, 0.2)
         else:
             glColor3f(0.97, 0.97, 0.97)
         glRotatef(-phi, 0.0, 0.0, 1.0)
-        glRotatef(240 + theta, 0, 1, 0)
+        glRotatef(cfg.appthetaC + theta, 0, 1, 0)
         glBegin(GL_LINES)
         glVertex3f(0., 0, 0)
         glVertex3f(0., 0, 2.2)
@@ -369,7 +381,7 @@ class OpenGLWidget(QOpenGLWidget):
         else:
             glColor3f(0.97, 0.97, 0.97)
         glRotatef(-phi, 0.0, 0.0, 1.0)
-        glRotatef(120 + theta, 0, 1, 0)
+        glRotatef(cfg.appthetaR + theta, 0, 1, 0)
         glBegin(GL_LINES)
         glVertex3f(0., 0, 0)
         glVertex3f(0., 0, 2.2)
@@ -387,33 +399,58 @@ class OpenGLWidget(QOpenGLWidget):
         base1 = 125
         base2 = 115
         painter.setPen(QColor(255, 153, 51))
-        y = int(0.25 * self.height() + base1 + 5 * step)
-        rect = QRect(0, 0, 150, self.height() - y)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Apparatus 1")
-        y = int(0.25 * self.height() + base1 + 4 * step)
-        rect = QRect(0, 0, 150, self.height() - y)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                         f"Rotation θ: {cfg.theta1:.1f}°")
-        y = int(0.25 * self.height() + base1 + 3 * step)
-        rect = QRect(0, 0, 150, self.height() - y)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                         f"Rotation 𝜙: {cfg.phi1:.1f}°")
-        y = int(0.25 * self.height() + base1 + 5 * step)
-        rect = QRect(self.width() - 150, 0, 150, self.height() - y)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Apparatus 2")
-        y = int(0.25 * self.height() + base1 + 4 * step)
-        rect = QRect(self.width() - 150, 0, 150, self.height() - y)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                         f"Rotation θ: {cfg.theta2:.1f}°")
-        y = int(0.25 * self.height() + base1 + 3 * step)
-        rect = QRect(self.width() - 150, 0, 150, self.height() - y)
-        painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                         f"Rotation 𝜙: {cfg.phi2:.1f}°")
+        if cfg.experiment < 0:
+            y = int(0.25 * self.height() + base1 + 5 * step)
+            rect = QRect(0, 0, 150, self.height() - y)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Apparatus 1")
+            y = int(0.25 * self.height() + base1 + 4 * step)
+            rect = QRect(0, 0, 150, self.height() - y)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
+                             f"Rotation θ: {cfg.theta1:.1f}°")
+            y = int(0.25 * self.height() + base1 + 3 * step)
+            rect = QRect(0, 0, 150, self.height() - y)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
+                             f"Rotation 𝜙: {cfg.phi1:.1f}°")
+            y = int(0.25 * self.height() + base1 + 5 * step)
+            rect = QRect(self.width() - 150, 0, 150, self.height() - y)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, "Apparatus 2")
+            y = int(0.25 * self.height() + base1 + 4 * step)
+            rect = QRect(self.width() - 150, 0, 150, self.height() - y)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
+                             f"Rotation θ: {cfg.theta2:.1f}°")
+            y = int(0.25 * self.height() + base1 + 3 * step)
+            rect = QRect(self.width() - 150, 0, 150, self.height() - y)
+            painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
+                             f"Rotation 𝜙: {cfg.phi2:.1f}°")
+        else:
+            y = int(0.25 * self.height() + base1 + 5 * step)
+            rect = QRect(20, 0, 150, self.height() - y)
+            painter.drawText(
+                rect,
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                "Apparatus")
+            y = int(0.25 * self.height() + base1 + 4 * step)
+            rect = QRect(20, 0, 150, self.height() - y)
+            painter.drawText(
+                rect,
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                f"θ (L)eft: {cfg.appthetaL:.1f}°")
+            y = int(0.25 * self.height() + base1 + 3 * step)
+            rect = QRect(20, 0, 150, self.height() - y)
+            painter.drawText(
+                rect,
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                f"θ (C)enter: {cfg.appthetaC:.1f}°")
+            y = int(0.25 * self.height() + base1 + 2 * step)
+            rect = QRect(20, 0, 150, self.height() - y)
+            painter.drawText(
+                rect,
+                Qt.AlignmentFlag.AlignVCenter | Qt.AlignmentFlag.AlignLeft,
+                f"θ (R)ight: {cfg.appthetaR:.1f}°")
         if self.measurement1:
             painter.setPen(QColor(255, 255, 255))
             half_width = int(self.width() / 2)
             tq_width = int(self.width() * 3 / 2)
-
             measurements_nb = len(self.measurements1)
             y = int(0.25 * self.height() + base1 + 0 * step)
             rect = QRect(0, y, half_width, self.height() - y)
@@ -456,12 +493,11 @@ class OpenGLWidget(QOpenGLWidget):
                 self.measurements2 == -1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"< color 2 > = {prob_m2*100:.1f}%")
-
             same_mask = self.switches1 == self.switches2
             diff_mask = self.switches1 != self.switches2
             num_same = np.sum(same_mask)
             num_diff = np.sum(diff_mask)
-
+        if self.measurement1 and cfg.experiment != 2:
             # Count occurrences where measurements have
             # the same value
             equal = np.sum(self.measurements1 == self.measurements2)
@@ -471,14 +507,12 @@ class OpenGLWidget(QOpenGLWidget):
                 equal_same_mask = np.sum(
                     self.measurements1[same_mask] == self.measurements2[
                         same_mask])
-
             # Count occurrences where measurements have
             # the same value for diff_mask
             if num_diff > 0:
                 equal_diff_mask = np.sum(
                     self.measurements1[diff_mask] == self.measurements2[
                         diff_mask])
-
             y = int(0.25 * self.height() + base1 + 5 * step)
             rect = QRect(0, 0, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
@@ -518,9 +552,49 @@ class OpenGLWidget(QOpenGLWidget):
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              "% same results = "
                              f"{equal/measurements_nb*100:.1f}%")
-
+        if cfg.experiment == 2:
+            # Compute the probability for Bell's inequality
+            c01, p01 = self.calculate_probabilities_exp2(0, 1, 1, -1)
+            c12, p12 = self.calculate_probabilities_exp2(1, 2, 1, -1)
+            c02, p02 = self.calculate_probabilities_exp2(0, 2, 1, -1)
+            if c01:
+                print(f"pass {cfg.appthetaL} and not pass "
+                      f"{cfg.appthetaC}: {p01*100:.2f}%")
+            if c12:
+                print(f"pass {cfg.appthetaC} and not pass "
+                      f"{cfg.appthetaR}: {p12*100:.2f}%")
+            if c02:
+                print(f"pass {cfg.appthetaL} and not pass "
+                      f"{cfg.appthetaR}: {p02*100:.2f}%")
+            if c01 and c12 and c02:
+                p1 = (p01 + p12) * 100
+                p2 = p02 * 100
+                print(f"N({cfg.appthetaL}°+,{cfg.appthetaC}°-) + "
+                      f"N({cfg.appthetaC}°+,{cfg.appthetaR}°-) ≥ "
+                      f"N({cfg.appthetaL}°+,{cfg.appthetaR}°-) ")
+                print(f" {p1:.2f}% ≥ {p2:.2f}%")
+                if p1 < p2:
+                    print("Bell's inequality is violated")
         painter.end()
         glEnable(GL_DEPTH_TEST)
+
+    def calculate_probabilities_exp2(self, sw_A, sw_B, r_1, r_2):
+        cond1 = (self.switches1 == sw_A) & (self.switches2 == sw_B)
+        count1 = np.sum(cond1)
+        cond2 = (self.switches1 == sw_B) & (self.switches2 == sw_A)
+        count2 = np.sum(cond2)
+        countnb = count1 + count2
+        prob = 0.0
+        if count1 > 0:
+            prob = np.mean((self.measurements1[cond1] == r_1) & (
+                self.measurements2[cond1] == r_2))
+        else:
+            prob = 0
+        if count2 > 0:
+            prob2 = np.mean((self.measurements1[cond2] == r_2) & (
+                self.measurements2[cond2] == r_1))
+            prob = (prob * count1 + prob2 * count2) / countnb
+        return countnb, prob
 
     def resizeGL(self, w: int, h: int):
         glViewport(0, 0, w, h)
@@ -535,7 +609,6 @@ class OpenGLWidget(QOpenGLWidget):
             if not self.isFixed:
                 self.button1 = random.randint(0, 2)
                 self.button2 = random.randint(0, 2)
-
             self.switches1 = np.append(self.switches1, self.button1)
             self.switches2 = np.append(self.switches2, self.button2)
             # it is possible to measure always the first apparatus first
@@ -549,7 +622,6 @@ class OpenGLWidget(QOpenGLWidget):
                 np.array([self.direction2p[self.button2],
                           self.direction2m[self.button2]]),
                 simulate_1)
-
             # Invert the results for apparatus 2 if in the config,
             # so, in the case of singlet, if the apparatus 1 measure +1,
             #  apparatus 2 will agree 100% of the time it is oriented
@@ -560,7 +632,6 @@ class OpenGLWidget(QOpenGLWidget):
                 self.measurements1, self.measurement1)
             self.measurements2 = np.append(
                 self.measurements2, self.measurement2)
-
         # redraw
         self.update()
 
@@ -660,21 +731,32 @@ class MainWindow(QWidget):
 
     def initUI(self):
         self.setGeometry(300, 300, 800, 600)
-        match cfg.stype:
+        match cfg.experiment:
+            case -1:
+                match cfg.stype:
+                    case 1:
+                        desc = 'Singlet state: '\
+                            '| Psi > = 1 / sqrt(2) ( | ud > - | du > )'
+                    case 2:
+                        desc = 'Triplet state I: '\
+                            '| Psi > = 1 / sqrt(2) ( | ud > + | du > )'
+                    case 3:
+                        desc = 'Triplet state II: '\
+                            '| Psi > = 1 / sqrt(2) ( | uu > + | dd > )'
+                    case 4:
+                        desc = 'Triplet state III: '\
+                            '| Psi > = 1 / sqrt(2) ( | uu > - | dd > )'
+                desc = f"EPR Experiment - {desc}"
             case 1:
-                desc = 'Singlet state: '\
+                desc = 'EPR Experiment - Stern-Gerlach magnets with '\
+                    'electrons in singlet state '\
                     '| Psi > = 1 / sqrt(2) ( | ud > - | du > )'
             case 2:
-                desc = 'Triplet state I: '\
-                    '| Psi > = 1 / sqrt(2) ( | ud > + | du > )'
-            case 3:
-                desc = 'Triplet state II: '\
+                desc = 'EPR Experiment - Polarizers with '\
+                    'photons in triplet state '\
                     '| Psi > = 1 / sqrt(2) ( | uu > + | dd > )'
-            case 4:
-                desc = 'Triplet state III: '\
-                    '| Psi > = 1 / sqrt(2) ( | uu > - | dd > )'
 
-        self.setWindowTitle(f"EPR Experiment - {desc}")
+        self.setWindowTitle(desc)
 
         self.opengl_widget = OpenGLWidget(self)
 
@@ -824,6 +906,8 @@ def main():
                         help='angle phi1 in degrees')
     parser.add_argument('-q', '--phi2', type=float,
                         help='angle phi2 in degrees')
+    parser.add_argument('-e', '--experiment', type=int, choices=[1, 2],
+                        help='predefined experiment')
 
     args = parser.parse_args()
     if (args.simul_type):
@@ -844,6 +928,45 @@ def main():
         cfg.phi1 = args.phi1
     if (args.phi2):
         cfg.phi2 = args.phi2
+    # if a specific experiment is selected, set the proper variables
+    if args.experiment is not None:
+        cfg.experiment = args.experiment
+        match cfg.experiment:
+            case 1:
+                # The detectors are three Stern-Gerlach magnets one
+                # oriented along the z axis and the other two in the zx plane
+                # with ±120° rotation and the particles are two entangled
+                # electrons in the singlet state
+                # Particles are in the singlet state
+                cfg.stype = 1
+                # orientation ±120°
+                cfg.appthetaL = 240
+                cfg.appthetaC = 0
+                cfg.appthetaR = 120
+                cfg.theta1 = 0
+                cfg.theta2 = 0
+                # xz plane
+                cfg.phi1 = 0
+                cfg.phi2 = 0
+                cfg.invert = True
+            case 2:
+                # The apparatus is composed by two polarizers which
+                # send the photons to three photodectors, one oriented
+                # along the z axis and the other two in the zx plane
+                # with 22.5° and 67.5° rotation and the particles
+                # are two entangled photons in the second triplet state
+                # Particles are a triplet in the second state
+                cfg.stype = 3
+                # orientation 22.5° and 67.5°
+                cfg.appthetaL = 0
+                cfg.appthetaC = 22.5
+                cfg.appthetaR = 45
+                cfg.theta1 = 0
+                cfg.theta2 = 0
+                # xz plane
+                cfg.phi1 = 0
+                cfg.phi2 = 0
+                cfg.invert = False
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.show()
