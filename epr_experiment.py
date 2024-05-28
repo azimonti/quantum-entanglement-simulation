@@ -37,7 +37,11 @@ from types import SimpleNamespace
 cfg = SimpleNamespace(
     stype=1, n=100, color_up=[0, 1, 0], color_down=[1, 0, 0],
     invert=True, theta1=0, phi1=0, theta2=0, phi2=0,
-    appthetaL=240, appthetaC=0, appthetaR=120, experiment=-1)
+    # additional coefficients  to to convert the real-space angles
+    # into the corresponding angles in the Hilbert space (Bloch sphere)
+    bloch_t=1.0, bloch_p=1.0,
+    appthetaL=240, appthetaC=0, appthetaR=120, experiment=-1,
+    verbose=False)
 
 description = (
     'This script simulates two entangled spin following '
@@ -83,10 +87,10 @@ description = (
     '    The particles are two entangled electrons in the singlet state.\n'
     '2 - The apparatus is composed by two polarizers which send two photons '
     'to three photodectors, one oriented along the z axis and the other two '
-    'in the zx plane with 22.5° and 67.5° rotation.\n'
+    'in the zx plane with 22.5° and 45° rotation.\n'
     '    The particles are two entangled photons in the second triplet '
     ' state | Psi > = 1 / sqrt(2) ( | uu > + | dd > ).'
-    'Selecting either of these experiment will ignore any physical variable '
+    'Selecting either of these experiments will ignore any physical variable '
     'set from the command line (e.g. theta1, theta2, ..).\n'
 )
 
@@ -125,10 +129,10 @@ class OpenGLWidget(QOpenGLWidget):
         # Initialize the directions which have a defined rotation between
         # each other
         # First apparatus
-        theta_i = (cfg.theta1 + cfg.appthetaL) * np.pi / 180
-        theta_j = (cfg.theta1 + cfg.appthetaC) * np.pi / 180
-        theta_k = (cfg.theta1 + cfg.appthetaR) * np.pi / 180
-        phi_i = cfg.phi1 * np.pi / 180
+        theta_i = (cfg.theta1 + cfg.appthetaL) * cfg.bloch_t * np.pi / 180
+        theta_j = (cfg.theta1 + cfg.appthetaC) * cfg.bloch_t * np.pi / 180
+        theta_k = (cfg.theta1 + cfg.appthetaR) * cfg.bloch_t * np.pi / 180
+        phi_i = cfg.phi1 * cfg.bloch_p * np.pi / 180
         self.direction1p = np.array([
             [
                 np.cos(theta_i / 2),
@@ -143,10 +147,13 @@ class OpenGLWidget(QOpenGLWidget):
                 np.exp(1j * phi_i) * np.sin(theta_k / 2)
             ]
         ])
-        theta_i = (cfg.theta1 + cfg.appthetaL) * np.pi / 180 + np.pi
-        theta_j = (cfg.theta1 + cfg.appthetaC) * np.pi / 180 + np.pi
-        theta_k = (cfg.theta1 + cfg.appthetaR) * np.pi / 180 + np.pi
-        phi_i = cfg.phi1 * np.pi / 180
+        theta_i = (
+            cfg.theta1 + cfg.appthetaL) * cfg.bloch_t * np.pi / 180 + np.pi
+        theta_j = (
+            cfg.theta1 + cfg.appthetaC) * cfg.bloch_t * np.pi / 180 + np.pi
+        theta_k = (
+            cfg.theta1 + cfg.appthetaR) * cfg.bloch_t * np.pi / 180 + np.pi
+        phi_i = cfg.phi1 * cfg.bloch_p * np.pi / 180
         self.direction1m = np.array([
             [
                 np.cos(theta_i / 2),
@@ -162,10 +169,10 @@ class OpenGLWidget(QOpenGLWidget):
             ]
         ])
         # Second apparatus
-        theta_i = (cfg.theta2 + cfg.appthetaL) * np.pi / 180
-        theta_j = (cfg.theta2 + cfg.appthetaC) * np.pi / 180
-        theta_k = (cfg.theta2 + cfg.appthetaR) * np.pi / 180
-        phi_i = cfg.phi2 * np.pi / 180
+        theta_i = (cfg.theta2 + cfg.appthetaL) * cfg.bloch_t * np.pi / 180
+        theta_j = (cfg.theta2 + cfg.appthetaC) * cfg.bloch_t * np.pi / 180
+        theta_k = (cfg.theta2 + cfg.appthetaR) * cfg.bloch_t * np.pi / 180
+        phi_i = cfg.phi2 * cfg.bloch_p * np.pi / 180
         self.direction2p = np.array([
             [
                 np.cos(theta_i / 2),
@@ -180,10 +187,13 @@ class OpenGLWidget(QOpenGLWidget):
                 np.exp(1j * phi_i) * np.sin(theta_k / 2)
             ]
         ])
-        theta_i = (cfg.theta2 + cfg.appthetaL) * np.pi / 180 + np.pi
-        theta_j = (cfg.theta2 + cfg.appthetaC) * np.pi / 180 + np.pi
-        theta_k = (cfg.theta2 + cfg.appthetaR) * np.pi / 180 + np.pi
-        phi_i = cfg.phi2 * np.pi / 180
+        theta_i = (
+            cfg.theta2 + cfg.appthetaL) * cfg.bloch_t * np.pi / 180 + np.pi
+        theta_j = (
+            cfg.theta2 + cfg.appthetaC) * cfg.bloch_t * np.pi / 180 + np.pi
+        theta_k = (
+            cfg.theta2 + cfg.appthetaR) * cfg.bloch_t * np.pi / 180 + np.pi
+        phi_i = cfg.phi2 * cfg.bloch_p * np.pi / 180
         self.direction2m = np.array([
             [
                 np.cos(theta_i / 2),
@@ -398,6 +408,7 @@ class OpenGLWidget(QOpenGLWidget):
         step = 35
         base1 = 125
         base2 = 115
+        base3 = 135
         painter.setPen(QColor(255, 153, 51))
         if cfg.experiment < 0:
             y = int(0.25 * self.height() + base1 + 5 * step)
@@ -452,17 +463,17 @@ class OpenGLWidget(QOpenGLWidget):
             half_width = int(self.width() / 2)
             tq_width = int(self.width() * 3 / 2)
             measurements_nb = len(self.measurements1)
-            y = int(0.25 * self.height() + base1 + 0 * step)
+            y = int(0.25 * self.height() + base1 + 1 * step)
             rect = QRect(0, y, half_width, self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"Measurement: {self.measurement1}")
-            y = int(0.25 * self.height() + base1 + 1 * step)
+            y = int(0.25 * self.height() + base1 + 2 * step)
             rect = QRect(0, y, half_width, self.height() - y)
             prob_p1 = np.count_nonzero(
                 self.measurements1 == 1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"< color 1 > = {prob_p1*100:.1f}%")
-            y = int(0.25 * self.height() + base1 + 2 * step)
+            y = int(0.25 * self.height() + base1 + 3 * step)
             rect = QRect(0, y, half_width, self.height() - y)
             prob_m1 = np.count_nonzero(
                 self.measurements1 == -1) / measurements_nb
@@ -477,17 +488,17 @@ class OpenGLWidget(QOpenGLWidget):
                 measurement2_disp = -1 * self.measurement2
             else:
                 measurement2_disp = self.measurement2
-            y = int(0.25 * self.height() + base1 + 0 * step)
+            y = int(0.25 * self.height() + base1 + 1 * step)
             rect = QRect(0, y, tq_width, self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"Measurement: {measurement2_disp}")
-            y = int(0.25 * self.height() + base1 + 1 * step)
+            y = int(0.25 * self.height() + base1 + 2 * step)
             rect = QRect(0, y, tq_width, self.height() - y)
             prob_p2 = np.count_nonzero(
                 self.measurements2 == 1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"< color 1 > = {prob_p2*100:.1f}%")
-            y = int(0.25 * self.height() + base1 + 2 * step)
+            y = int(0.25 * self.height() + base1 + 3 * step)
             rect = QRect(0, y, tq_width, self.height() - y)
             prob_m2 = np.count_nonzero(
                 self.measurements2 == -1) / measurements_nb
@@ -497,7 +508,6 @@ class OpenGLWidget(QOpenGLWidget):
             diff_mask = self.switches1 != self.switches2
             num_same = np.sum(same_mask)
             num_diff = np.sum(diff_mask)
-        if self.measurement1 and cfg.experiment != 2:
             # Count occurrences where measurements have
             # the same value
             equal = np.sum(self.measurements1 == self.measurements2)
@@ -543,11 +553,11 @@ class OpenGLWidget(QOpenGLWidget):
                 painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                                  "% same results = "
                                  f"{equal_diff_mask/num_diff*100:.1f}%")
-            y = int(0.25 * self.height() + base1 + 0 * step)
+            y = int(0.25 * self.height() + base1 + 1 * step)
             rect = QRect(0, y, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              f"Total Measurements: {measurements_nb}")
-            y = int(0.25 * self.height() + base1 + 1 * step)
+            y = int(0.25 * self.height() + base1 + 2 * step)
             rect = QRect(0, y, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              "% same results = "
@@ -557,24 +567,46 @@ class OpenGLWidget(QOpenGLWidget):
             c01, p01 = self.calculate_probabilities_exp2(0, 1, 1, -1)
             c12, p12 = self.calculate_probabilities_exp2(1, 2, 1, -1)
             c02, p02 = self.calculate_probabilities_exp2(0, 2, 1, -1)
-            if c01:
-                print(f"pass {cfg.appthetaL} and not pass "
-                      f"{cfg.appthetaC}: {p01*100:.2f}%")
-            if c12:
-                print(f"pass {cfg.appthetaC} and not pass "
-                      f"{cfg.appthetaR}: {p12*100:.2f}%")
-            if c02:
-                print(f"pass {cfg.appthetaL} and not pass "
-                      f"{cfg.appthetaR}: {p02*100:.2f}%")
             if c01 and c12 and c02:
                 p1 = (p01 + p12) * 100
                 p2 = p02 * 100
-                print(f"N({cfg.appthetaL}°+,{cfg.appthetaC}°-) + "
-                      f"N({cfg.appthetaC}°+,{cfg.appthetaR}°-) ≥ "
-                      f"N({cfg.appthetaL}°+,{cfg.appthetaR}°-) ")
-                print(f" {p1:.2f}% ≥ {p2:.2f}%")
+                painter.setPen(QColor(255, 153, 51))
+                text1 = f"N({cfg.appthetaL}°+,{cfg.appthetaC}°-) + "\
+                    f"N({cfg.appthetaC}°+,{cfg.appthetaR}°-) ≥ "\
+                    f"N({cfg.appthetaL}°+,{cfg.appthetaR}°-)"
+                y = int(0.25 * self.height() + base3 - 4 * step)
+                rect = QRect(0, y, self.width(), self.height() - y)
+                painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text1)
+                text2 = f"1/2*sin^2({cfg.appthetaC - cfg.appthetaL}°) + " \
+                    f"1/2*sin^2({cfg.appthetaR - cfg.appthetaC}°)  ≥ " \
+                    f"1/2*sin^2({cfg.appthetaR - cfg.appthetaL}°)"
+                y = int(0.25 * self.height() + base3 - 3 * step)
+                rect = QRect(0, y, self.width(), self.height() - y)
+                painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text2)
+                text3 = f"{p1:.2f}% ≥ {p2:.2f}%"
+                y = int(0.25 * self.height() + base3 - 2 * step)
+                rect = QRect(0, y, self.width(), self.height() - y)
+                painter.drawText(rect, Qt.AlignmentFlag.AlignCenter, text3)
                 if p1 < p2:
-                    print("Bell's inequality is violated")
+                    y = int(0.25 * self.height() + base3 - 1 * step)
+                    rect = QRect(0, y, self.width(), self.height() - y)
+                    painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
+                                     "Bell's inequality is violated")
+            if cfg.verbose:
+                if c01:
+                    print(f"pass {cfg.appthetaL} and not pass "
+                          f"{cfg.appthetaC}: {p01*100:.2f}%")
+                if c12:
+                    print(f"pass {cfg.appthetaC} and not pass "
+                          f"{cfg.appthetaR}: {p12*100:.2f}%")
+                if c02:
+                    print(f"pass {cfg.appthetaL} and not pass "
+                          f"{cfg.appthetaR}: {p02*100:.2f}%")
+                if c01 and c12 and c02:
+                    print(text1)
+                    print(text3)
+                    if p1 < p2:
+                        print("Bell's inequality is violated")
         painter.end()
         glEnable(GL_DEPTH_TEST)
 
@@ -615,13 +647,23 @@ class OpenGLWidget(QOpenGLWidget):
             # but to give more variability, which one to measure is
             # randomly chosen
             random_number = random.uniform(0, 1)
-            simulate_1 = True if random_number < 0.5 else False
-            self.measurement1, self.measurement2 = self.measureSpin(
-                np.array([self.direction1p[self.button1],
-                          self.direction1m[self.button1]]),
-                np.array([self.direction2p[self.button2],
-                          self.direction2m[self.button2]]),
-                simulate_1)
+            if random_number < 0.5:
+
+                # Simulate measuring the first apparatus
+                self.measurement1, self.measurement2 = self.measureSpin(
+                    np.array([self.direction1p[self.button1],
+                              self.direction1m[self.button1]]),
+                    np.array([self.direction2p[self.button2],
+                              self.direction2m[self.button2]]),
+                    True)
+            else:
+                # Simulate measuring the second apparatus
+                self.measurement2, self.measurement1 = self.measureSpin(
+                    np.array([self.direction1p[self.button1],
+                              self.direction1m[self.button1]]),
+                    np.array([self.direction2p[self.button2],
+                              self.direction2m[self.button2]]),
+                    False)
             # Invert the results for apparatus 2 if in the config,
             # so, in the case of singlet, if the apparatus 1 measure +1,
             #  apparatus 2 will agree 100% of the time it is oriented
@@ -655,26 +697,26 @@ class OpenGLWidget(QOpenGLWidget):
         direction1_m1 = np.array(directions1[1])
         direction2_p1 = np.array(directions2[0])
         direction2_m1 = np.array(directions2[1])
-        projectorA_p1 = np.outer(direction1_p1, direction1_p1.conj())
-        projectorA_m1 = np.outer(direction1_m1, direction1_m1.conj())
-        projectorB_p1 = np.outer(direction2_p1, direction2_p1.conj())
-        projectorB_m1 = np.outer(direction2_m1, direction2_m1.conj())
+        projector1_p1 = np.outer(direction1_p1, direction1_p1.conj())
+        projector1_m1 = np.outer(direction1_m1, direction1_m1.conj())
+        projector2_p1 = np.outer(direction2_p1, direction2_p1.conj())
+        projector2_m1 = np.outer(direction2_m1, direction2_m1.conj())
 
         if simulate_1:
             # Create 4x4 projectors for the two-spin system
-            projector_p1_s = np.kron(projectorA_p1, np.eye(2))
-            projector_m1_s = np.kron(projectorA_m1, np.eye(2))
-            projector_p11 = projectorA_p1
-            projector_p21 = projectorB_p1
+            projector_p1_s = np.kron(projector1_p1, np.eye(2))
+            projector_m1_s = np.kron(projector1_m1, np.eye(2))
+            projector_p11 = projector1_p1
+            projector_p21 = projector2_p1
 
             # Calculate the reduced density matrix for the first spin
             # which is measured
             rho_i = Rho1(psi)
         else:
-            projector_p1_s = np.kron(np.eye(2), projectorB_p1)
-            projector_m1_s = np.kron(np.eye(2), projectorB_m1)
-            projector_p11 = projectorB_p1
-            projector_p21 = projectorA_p1
+            projector_p1_s = np.kron(np.eye(2), projector2_p1)
+            projector_m1_s = np.kron(np.eye(2), projector2_m1)
+            projector_p11 = projector2_p1
+            projector_p21 = projector1_p1
             rho_i = Rho2(psi)
 
         # Calculate the probability of this first spin being "+1"
@@ -908,7 +950,14 @@ def main():
                         help='angle phi2 in degrees')
     parser.add_argument('-e', '--experiment', type=int, choices=[1, 2],
                         help='predefined experiment')
-
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='verbose output', required=False)
+    parser.add_argument('-b', '--bloch-theta', type=float,
+                        help='coefficient theta between real '
+                        'and Hilbert world')
+    parser.add_argument('-c', '--bloch-phi', type=float,
+                        help='coefficient phi between real '
+                        'and Hilbert world')
     args = parser.parse_args()
     if (args.simul_type):
         cfg.stype = int(args.simul_type)
@@ -916,6 +965,8 @@ def main():
         cfg.n = int(args.measurement_number)
     if (args.no_invert):
         cfg.invert = False
+    if (args.verbose):
+        cfg.verbose = True
     if (args.color_up):
         cfg.color_up = args.color_up
     if (args.color_down):
@@ -928,6 +979,10 @@ def main():
         cfg.phi1 = args.phi1
     if (args.phi2):
         cfg.phi2 = args.phi2
+    if (args.bloch_theta):
+        cfg.bloch_t = args.bloch_theta
+    if (args.bloch_phi):
+        cfg.bloch_p = args.bloch_phi
     # if a specific experiment is selected, set the proper variables
     if args.experiment is not None:
         cfg.experiment = args.experiment
@@ -963,6 +1018,16 @@ def main():
                 cfg.appthetaR = 45
                 cfg.theta1 = 0
                 cfg.theta2 = 0
+                # In the real world, light polarization is typically measured
+                # in degrees, and the angle θ can be from 0° to 360°.
+                # In the Hilbert space, the angles are typically represented by
+                # the state vectors on the Bloch sphere,
+                # where θ ranges from 0 to π.
+                # The conversion from real-world polarization angle θreal to
+                # the Hilbert space angle θHilbert is given by:
+                # θHilbert = 2 * θreal
+                cfg.bloch_t = 2
+                cfg.bloch_p = 1
                 # xz plane
                 cfg.phi1 = 0
                 cfg.phi2 = 0

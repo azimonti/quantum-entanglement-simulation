@@ -31,7 +31,11 @@ import time
 from types import SimpleNamespace
 
 cfg = SimpleNamespace(
-    stype=3, m=False, color_left=(0, 1, 0), color_right=(1, 0, 0))
+    stype=3, m=False, color_left=(0, 1, 0), color_right=(1, 0, 0),
+    # additional coefficients  to to convert the real-space angles
+    # into the corresponding angles in the Hilbert space (Bloch sphere)
+    bloch_t=1.0, bloch_p=1.0,
+    verbose=False)
 
 description = (
     'This script simulates two spin following '
@@ -136,12 +140,6 @@ class OpenGLWidget(QOpenGLWidget):
             'y': np.array([[1 / np.sqrt(2), 1j / np.sqrt(2)],
                            [1 / np.sqrt(2), -1j / np.sqrt(2)]])
         }
-
-    @property
-    def apparatusA_direction(self):
-        return np.array([
-            [np.cos(self.a_thetaA / 2)],
-            [np.exp(1j * self.a_phiA) * np.sin(self.a_thetaA / 2)]])
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -363,21 +361,25 @@ class OpenGLWidget(QOpenGLWidget):
 
         # get the measurement direction for A
         directionAp = np.array([
-            np.cos(self.a_thetaA / 2),
-            np.exp(1j * self.a_phiA) * np.sin(self.a_thetaA / 2)])
+            np.cos(self.a_thetaA * cfg.bloch_t / 2),
+            np.exp(1j * self.a_phiA * cfg.bloch_p) * np.sin(
+                self.a_thetaA * cfg.bloch_t / 2)])
         # get the opposite measurement direction
         directionAm = np.array([
-            np.cos(np.pi / 2 + self.a_thetaA / 2),
-            np.exp(1j * self.a_phiA) * np.sin(np.pi / 2 + self.a_thetaA / 2)])
+            np.cos(np.pi / 2 + self.a_thetaA * cfg.bloch_t / 2),
+            np.exp(1j * self.a_phiA * cfg.bloch_p) * np.sin(
+                np.pi / 2 + self.a_thetaA * cfg.bloch_t / 2)])
 
         # get the measurement direction for B
         directionBp = np.array([
-            np.cos(self.a_thetaB / 2),
-            np.exp(1j * self.a_phiB) * np.sin(self.a_thetaB / 2)])
+            np.cos(self.a_thetaB * cfg.bloch_t / 2),
+            np.exp(1j * self.a_phiB * cfg.bloch_p) * np.sin(
+                self.a_thetaB * cfg.bloch_t / 2)])
         # get the opposite measurement direction
         directionBm = np.array([
-            np.cos(np.pi / 2 + self.a_thetaB / 2),
-            np.exp(1j * self.a_phiB) * np.sin(np.pi / 2 + self.a_thetaB / 2)])
+            np.cos(np.pi / 2 + self.a_thetaB * cfg.bloch_t / 2),
+            np.exp(1j * self.a_phiB * cfg.bloch_p) * np.sin(
+                np.pi / 2 + self.a_thetaB * cfg.bloch_t / 2)])
 
         if measureA:
             sp = self.measureSpin(np.array([directionAp, directionAm]),
@@ -624,7 +626,14 @@ def main():
                         help='Set the right apparatus color as comma-separated'
                         ' RGB values (0-255). Example: -r 255,0,0 -'
                         ' Default: red')
-
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='verbose output', required=False)
+    parser.add_argument('-b', '--bloch-theta', type=float,
+                        help='coefficient theta between real '
+                        'and Hilbert world')
+    parser.add_argument('-c', '--bloch-phi', type=float,
+                        help='coefficient phi between real '
+                        'and Hilbert world')
     args = parser.parse_args()
     if (args.simul_type):
         cfg.stype = int(args.simul_type)
@@ -634,6 +643,12 @@ def main():
         cfg.color_left = args.color_left
     if (args.color_right):
         cfg.color_right = args.color_right
+    if (args.verbose):
+        cfg.verbose = True
+    if (args.bloch_theta):
+        cfg.bloch_t = args.bloch_theta
+    if (args.bloch_phi):
+        cfg.bloch_p = args.bloch_phi
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.show()

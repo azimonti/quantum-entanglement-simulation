@@ -31,7 +31,12 @@ import sys
 import time
 from types import SimpleNamespace
 
-cfg = SimpleNamespace(stype=1, color=(1, 1, 1))
+cfg = SimpleNamespace(
+    stype=1, color=(1, 1, 1),
+    # additional coefficients  to to convert the real-space angles
+    # into the corresponding angles in the Hilbert space (Bloch sphere)
+    bloch_t=1.0, bloch_p=1.0,
+    verbose=False)
 
 description = (
     'This script simulates a single spin following quantum '
@@ -99,15 +104,16 @@ class OpenGLWidget(QOpenGLWidget):
     @property
     def apparatus_direction(self):
         return np.array([
-            [np.cos(self.a_theta / 2)],
-            [np.exp(1j * self.a_phi) * np.sin(self.a_theta / 2)]])
+            [np.cos(self.a_theta * cfg.bloch_t / 2)],
+            [np.exp(1j * self.a_phi * cfg.bloch_p) * np.sin(
+                self.a_theta * cfg.bloch_t / 2)]])
 
     @property
     def apparatus_opposite_direction(self):
         return np.array([
-            [np.cos(np.pi / 2 + self.a_theta / 2)],
-            [np.exp(1j * self.a_phi) * np.sin(
-                np.pi / 2 + self.a_theta / 2)]])
+            [np.cos(np.pi / 2 + self.a_theta * cfg.bloch_t / 2)],
+            [np.exp(1j * self.a_phi * cfg.bloch_p) * np.sin(
+                np.pi / 2 + self.a_theta * cfg.bloch_t / 2)]])
 
     def initializeGL(self):
         glClearColor(0.0, 0.0, 0.0, 1.0)
@@ -117,19 +123,20 @@ class OpenGLWidget(QOpenGLWidget):
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT)
         glLoadIdentity()
         glColor3f(*cfg.color)
-        # Adjust the camera view
+        # adjust the camera view
         gluLookAt(0.0, -5.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0)
         glPushMatrix()
         glMatrixMode(GL_MODELVIEW)
-        # Rotate the rectangle along Y-axis
+        # rotate the rectangle along Y-axis
         a_theta_deg = math.degrees(self.a_theta)
         a_phi_deg = math.degrees(self.a_phi)
-        # print(f"apparatus theta = {a_theta_deg}\n phi = {a_phi_deg}")
+        if cfg.verbose:
+            print(f"apparatus theta = {a_theta_deg}\n phi = {a_phi_deg}")
 
-        # Apply the rotation
+        # apply the rotation
         glRotatef(-a_phi_deg, 0.0, 0.0, 1.0)
         glRotatef(a_theta_deg, 0.0, 1.0, 0.0)
-        # Draw a rectangle on ZX plane
+        # draw a rectangle on ZX plane
         glBegin(GL_QUADS)
         glVertex3f(-0.5, 0, -0.5)
         glVertex3f(0.5, 0, -0.5)
@@ -137,7 +144,7 @@ class OpenGLWidget(QOpenGLWidget):
         glVertex3f(-0.5, 0, 0.5)
         glEnd()
 
-        # Draw an arrow
+        # draw an arrow
         glBegin(GL_LINES)
         glVertex3f(0., 0, -1)
         glVertex3f(0., 0, 1)
@@ -192,7 +199,7 @@ class OpenGLWidget(QOpenGLWidget):
                 s_phi = cmath.phase(self.current_state[1][0])
             else:
                 s_phi = 0
-            # If the real part is negative, set it > pi
+            # if the real part is negative, set it > pi
             if self.current_state[0][0].real < 0:
                 s_theta = 2 * np.pi - s_theta
 
@@ -201,7 +208,8 @@ class OpenGLWidget(QOpenGLWidget):
             # Convert theta and phi to degrees
             s_theta_deg = math.degrees(s_theta)
             s_phi_deg = math.degrees(s_phi)
-            # print(f"spin theta = {s_theta_deg}\nspin phi = {s_phi_deg}")
+            if cfg.verbose:
+                print(f"spin theta = {s_theta_deg}\nspin phi = {s_phi_deg}")
 
             y = int(0.25 * self.height() + 160)
             rect = QRect(0, y, self.width(), self.height() - y)
@@ -261,10 +269,10 @@ class OpenGLWidget(QOpenGLWidget):
             np.cos(self.a_theta / 2),
             np.exp(1j * self.a_phi) * np.sin(self.a_theta / 2)])
         prob_p1 = np.abs(np.vdot(direction, self.current_state)) ** 2
-        # Generate a random number between 0 and 1
+        # generate a random number between 0 and 1
         random_number = random.uniform(0, 1)
 
-        # Perform the measurement in apparatus direction
+        # perform the measurement in apparatus direction
         self.num_measurements += 1
         if random_number < prob_p1:
             self.count_p1 += 1
@@ -372,11 +380,25 @@ def main():
     parser.add_argument('-c', '--color', type=parse_color,
                         help='Set the apparatus color as comma-separated '
                         'RGB values (0-255). Example: -c 255,0,0')
+    parser.add_argument('-v', '--verbose', action='store_true',
+                        help='verbose output', required=False)
+    parser.add_argument('-b', '--bloch-theta', type=float,
+                        help='coefficient theta between real '
+                        'and Hilbert world')
+    parser.add_argument('-c', '--bloch-phi', type=float,
+                        help='coefficient phi between real '
+                        'and Hilbert world')
     args = parser.parse_args()
     if (args.simul_type):
         cfg.stype = int(args.simul_type)
     if (args.color):
         cfg.color = args.color
+    if (args.verbose):
+        cfg.verbose = True
+    if (args.bloch_theta):
+        cfg.bloch_t = args.bloch_theta
+    if (args.bloch_phi):
+        cfg.bloch_p = args.bloch_phi
     app = QtWidgets.QApplication(sys.argv)
     window = MainWindow()
     window.show()
