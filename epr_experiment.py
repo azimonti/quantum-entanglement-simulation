@@ -2,8 +2,8 @@
 '''
 /************************/
 /*  epr_experiment.py   */
-/*    Version 1.0       */
-/*      2024/05/12      */
+/*    Version 1.1       */
+/*      2024/05/28      */
 /************************/
 '''
 import argparse
@@ -125,7 +125,7 @@ class OpenGLWidget(QOpenGLWidget):
             case _:
                 raise ValueError(
                     f"Incorrect simulation type {self.simul_type}")
-        self.current_state = spin.psi
+        self.spin = spin
         # Initialize the directions which have a defined rotation between
         # each other
         # First apparatus
@@ -650,7 +650,7 @@ class OpenGLWidget(QOpenGLWidget):
             if random_number < 0.5:
 
                 # Simulate measuring the first apparatus
-                self.measurement1, self.measurement2 = self.measureSpin(
+                self.measurement1, self.measurement2 = self.spin.Measure(
                     np.array([self.direction1p[self.button1],
                               self.direction1m[self.button1]]),
                     np.array([self.direction2p[self.button2],
@@ -658,7 +658,7 @@ class OpenGLWidget(QOpenGLWidget):
                     True)
             else:
                 # Simulate measuring the second apparatus
-                self.measurement2, self.measurement1 = self.measureSpin(
+                self.measurement2, self.measurement1 = self.spin.Measure(
                     np.array([self.direction1p[self.button1],
                               self.direction1m[self.button1]]),
                     np.array([self.direction2p[self.button2],
@@ -676,74 +676,6 @@ class OpenGLWidget(QOpenGLWidget):
                 self.measurements2, self.measurement2)
         # redraw
         self.update()
-
-    def measureSpin(self, directions1: np.ndarray,
-                    directions2: np.ndarray, simulate_1: bool):
-        '''
-        Perform the measurement of the spin of two directions 1 and 2,
-        which one to simulate is decided by the caller.
-        '''
-        def Rho1(psi: np.ndarray):
-            return np.outer(psi, psi.conj()).reshape(
-                (2, 2, 2, 2)).trace(axis1=1, axis2=3)
-
-        def Rho2(psi: np.ndarray):
-            return np.outer(psi, psi.conj()).reshape((
-                2, 2, 2, 2)).trace(axis1=0, axis2=2)
-
-        psi = self.current_state
-        # Define the projector operator for the "+1" state
-        direction1_p1 = np.array(directions1[0])
-        direction1_m1 = np.array(directions1[1])
-        direction2_p1 = np.array(directions2[0])
-        direction2_m1 = np.array(directions2[1])
-        projector1_p1 = np.outer(direction1_p1, direction1_p1.conj())
-        projector1_m1 = np.outer(direction1_m1, direction1_m1.conj())
-        projector2_p1 = np.outer(direction2_p1, direction2_p1.conj())
-        projector2_m1 = np.outer(direction2_m1, direction2_m1.conj())
-
-        if simulate_1:
-            # Create 4x4 projectors for the two-spin system
-            projector_p1_s = np.kron(projector1_p1, np.eye(2))
-            projector_m1_s = np.kron(projector1_m1, np.eye(2))
-            projector_p11 = projector1_p1
-            projector_p21 = projector2_p1
-
-            # Calculate the reduced density matrix for the first spin
-            # which is measured
-            rho_i = Rho1(psi)
-        else:
-            projector_p1_s = np.kron(np.eye(2), projector2_p1)
-            projector_m1_s = np.kron(np.eye(2), projector2_m1)
-            projector_p11 = projector2_p1
-            projector_p21 = projector1_p1
-            rho_i = Rho2(psi)
-
-        # Calculate the probability of this first spin being "+1"
-        prob_p11 = np.linalg.norm(np.trace(np.dot(projector_p11, rho_i)))
-        # Generate a random number between 0 and 1
-        random_number1 = random.uniform(0, 1)
-
-        # Perform the measurement in apparatus direction
-        sp1 = 1 if random_number1 < prob_p11 else -1
-
-        # reduce psi projecting on the direction
-        psi_r = np.dot(projector_p1_s, psi) if sp1 == 1 else \
-            np.dot(projector_m1_s, psi)
-        # Normalize psi_r
-        psi_r = psi_r / np.linalg.norm(psi_r)
-        # Calculate the reduced density matrix for the second spin
-        # with the collapsed wave function for the first system
-        rho_j = Rho2(psi_r) if simulate_1 else Rho1(psi_r)
-
-        # Calculate the probability of "system 2" being "+1"
-        prob_p12 = np.linalg.norm(np.trace(np.dot(projector_p21, rho_j)))
-
-        # Generate a random number between 0 and 1
-        random_number2 = random.uniform(0, 1)
-
-        sp2 = 1 if random_number2 < prob_p12 else -1
-        return (sp1, sp2)
 
     def update_button1(self, value: int):
         self.button1 = value
@@ -882,7 +814,10 @@ class MainWindow(QWidget):
         # Set Default
         self.radioButtonC1.setChecked(True)
         self.radioButtonC2.setChecked(True)
-        self.radioButtonFix.setChecked(True)
+        if cfg.experiment < 0:
+            self.radioButtonFix.setChecked(True)
+        else:
+            self.radioButtonRandom.setChecked(True)
 
         self.layout.addLayout(self.gridlayout)
 

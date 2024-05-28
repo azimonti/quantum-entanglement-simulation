@@ -2,8 +2,8 @@
 '''
 /************************/
 /*    two_spin_sim.py   */
-/*    Version 1.0       */
-/*      2024/05/11      */
+/*    Version 1.1       */
+/*      2024/05/28      */
 /************************/
 '''
 import argparse
@@ -128,7 +128,7 @@ class OpenGLWidget(QOpenGLWidget):
         self.measurementB = None
         self.count_p1B = 0
         self.count_m1B = 0
-        self.current_state = None
+        self.spin = TwoSpin()
         self.sigma = {'A': {'x': [], 'y': [], 'z': [], 'th_ph': []},
                       'B': {'x': [], 'y': [], 'z': [], 'th_ph': []}
                       }
@@ -352,10 +352,10 @@ class OpenGLWidget(QOpenGLWidget):
             self.measurementA = -1
 
     def measureAB(self, current_state: np.ndarray, measureA: bool):
-        self.current_state = current_state
+        self.spin.psi = current_state
         for axis in ['z', 'x', 'y']:
-            sp = self.measureSpin(self.directions[axis],
-                                  self.directions[axis], True)
+            sp = self.spin.Measure(self.directions[axis],
+                                   self.directions[axis], True)
             self.sigma['A'][axis].append(sp[0])
             self.sigma['B'][axis].append(sp[1])
 
@@ -382,16 +382,16 @@ class OpenGLWidget(QOpenGLWidget):
                 np.pi / 2 + self.a_thetaB * cfg.bloch_t / 2)])
 
         if measureA:
-            sp = self.measureSpin(np.array([directionAp, directionAm]),
-                                  np.array([directionBp, directionBm]), True)
+            sp = self.spin.Measure(np.array([directionAp, directionAm]),
+                                   np.array([directionBp, directionBm]), True)
             self.sigma['A']['th_ph'].append(sp[0])
             self.updateCountA(sp[0])
             if cfg.m:
                 self.sigma['B']['th_ph'].append(sp[1])
                 self.updateCountB(sp[1])
         else:
-            sp = self.measureSpin(np.array([directionAp, directionAm]),
-                                  np.array([directionBp, directionBm]), False)
+            sp = self.spin.Measure(np.array([directionAp, directionAm]),
+                                   np.array([directionBp, directionBm]), False)
             self.sigma['B']['th_ph'].append(sp[1])
             self.updateCountB(sp[1])
             if cfg.m:
@@ -418,75 +418,6 @@ class OpenGLWidget(QOpenGLWidget):
         else:
             self.count_m1B += 1
             self.measurementB = -1
-
-    def measureSpin(self, directionsA: np.ndarray,
-                    directionsB: np.ndarray, simulate_A: bool):
-        '''
-        Perform the measurement of the spin of two systems A and B,
-        which one to simulate is decided by the caller.
-        '''
-        def RhoA(psi: np.ndarray):
-            return np.outer(psi, psi.conj()).reshape(
-                (2, 2, 2, 2)).trace(axis1=1, axis2=3)
-
-        def RhoB(psi: np.ndarray):
-            return np.outer(psi, psi.conj()).reshape((
-                2, 2, 2, 2)).trace(axis1=0, axis2=2)
-
-        psi = self.current_state
-        # Define the projector operator for the "+1" state
-        directionA_p1 = np.array(directionsA[0])
-        directionA_m1 = np.array(directionsA[1])
-        directionB_p1 = np.array(directionsB[0])
-        directionB_m1 = np.array(directionsB[1])
-
-        projectorA_p1 = np.outer(directionA_p1, directionA_p1.conj())
-        projectorA_m1 = np.outer(directionA_m1, directionA_m1.conj())
-        projectorB_p1 = np.outer(directionB_p1, directionB_p1.conj())
-        projectorB_m1 = np.outer(directionB_m1, directionB_m1.conj())
-
-        if simulate_A:
-            # Create 4x4 projectors for the two-spin system
-            projector_p1_s = np.kron(projectorA_p1, np.eye(2))
-            projector_m1_s = np.kron(projectorA_m1, np.eye(2))
-            projector_p11 = projectorA_p1
-            projector_p21 = projectorB_p1
-
-            # Calculate the reduced density matrix for the first spin
-            # which is measured
-            rho1 = RhoA(psi)
-        else:
-            projector_p1_s = np.kron(np.eye(2), projectorB_p1)
-            projector_m1_s = np.kron(np.eye(2), projectorB_m1)
-            projector_p11 = projectorB_p1
-            projector_p21 = projectorA_p1
-            rho1 = RhoB(psi)
-
-        # Calculate the probability of this first spin being "+1"
-        prob_p11 = np.linalg.norm(np.trace(np.dot(projector_p11, rho1)))
-        # Generate a random number between 0 and 1
-        random_number1 = random.uniform(0, 1)
-
-        # Perform the measurement in apparatus direction
-        sp1 = 1 if random_number1 < prob_p11 else -1
-
-        # reduce psi projecting on the direction
-        psi_r = np.dot(projector_p1_s, psi) if sp1 == 1 else \
-            np.dot(projector_m1_s, psi)
-        # Normalize psi_r
-        psi_r = psi_r / np.linalg.norm(psi_r)
-        # Calculate the reduced density matrix for the second spin
-        # with the collapsed wave function for the first system
-        rho2 = RhoB(psi_r) if simulate_A else RhoA(psi_r)
-
-        # Calculate the probability of "system 2" being "+1"
-        prob_p12 = np.linalg.norm(np.trace(np.dot(projector_p21, rho2)))
-
-        # Generate a random number between 0 and 1
-        random_number2 = random.uniform(0, 1)
-
-        sp2 = 1 if random_number2 < prob_p12 else -1
-        return (sp1, sp2) if simulate_A else (sp2, sp1)
 
 
 class MainWindow(QWidget):
