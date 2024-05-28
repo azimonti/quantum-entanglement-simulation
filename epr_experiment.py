@@ -958,8 +958,11 @@ def main():
                 # In the Hilbert space, the angles are typically represented by
                 # the state vectors on the Bloch sphere,
                 # where θ ranges from 0 to π.
-                # The conversion from real-world polarization angle θreal to
-                # the Hilbert space angle θHilbert is given by:
+                #  Since vertical and horizontal polarizations are orthogonal
+                # and correspond to π/2 in real-world measurements and π
+                # on the Bloch sphere, the relationship between the real-world
+                # polarization angle `θ_real` and the Hilbert space angle
+                # `θ_Hilbert` is given by:
                 # θHilbert = 2 * θreal
                 cfg.bloch_t = 2
                 cfg.bloch_p = 1

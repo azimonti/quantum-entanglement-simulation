@@ -62,6 +62,44 @@ Both apparatus measure at the same time. A button allows random selection of the
 
 This script provides a comprehensive tool for simulating and analyzing the fundamental aspects of quantum entanglement and the EPR paradox.
 
+### Preset Experiments
+
+#### 1. Entangled Electrons with Stern-Gerlach Magnets
+
+The detectors are three Stern-Gerlach magnets:
+
+- One oriented along the z-axis
+- Two in the zx plane with ±120° rotation
+
+The particles are two entangled electrons in the singlet state:
+
+```
+| Psi > = 1 / sqrt(2) * ( | up down > - | down up > )
+```
+
+![Entangled electrons with Stern-Gerlach magnets experiment](screenshots/entangled_electrons.png)
+
+#### 2. Entangled Photons with Polarizers
+
+The apparatus consists of two polarizers directing two photons to three photodetectors:
+
+- One oriented along the z-axis
+- Two in the zx plane with 22.5° and 45° rotation
+
+The particles are two entangled photons in the second triplet state:
+
+```
+| Psi > = 1 / sqrt(2) * ( | up up > + | down down > )
+```
+
+Note: In the real world, light polarization is typically measured in degrees, and the angle θ can be from 0° to 360°. In the Hilbert space, the angles are typically represented by the state vectors on the Bloch sphere, where θ ranges from 0 to π. Since vertical and horizontal polarizations are orthogonal and correspond to π/2 in real-world measurements and π on the Bloch sphere, the relationship between the real-world polarization angle `θ_real` and the Hilbert space angle `θ_Hilbert` is given by:
+
+```
+θ_Hilbert = 2 * θ_real
+```
+
+![Entangled photons with polarizers experiment](screenshots/entangled_photons.png)
+
 ## Getting Started
 
 To get started with these simulations:
