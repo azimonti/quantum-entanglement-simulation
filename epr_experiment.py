@@ -472,13 +472,13 @@ class OpenGLWidget(QOpenGLWidget):
             prob_p1 = np.count_nonzero(
                 self.measurements1 == 1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< color 1 > = {prob_p1*100:.1f}%")
+                             f"< color 1 > = {prob_p1 * 100:.1f}%")
             y = int(0.25 * self.height() + base1 + 3 * step)
             rect = QRect(0, y, half_width, self.height() - y)
             prob_m1 = np.count_nonzero(
                 self.measurements1 == -1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< color 2 > = {prob_m1*100:.1f}%")
+                             f"< color 2 > = {prob_m1 * 100:.1f}%")
             # Invert back the results for apparatus 2 if in the config,
             # for correctly displaying the measurement as it would be
             # if the apparatus measure it (so if apparatus 1 shows +1
@@ -497,13 +497,13 @@ class OpenGLWidget(QOpenGLWidget):
             prob_p2 = np.count_nonzero(
                 self.measurements2 == 1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< color 1 > = {prob_p2*100:.1f}%")
+                             f"< color 1 > = {prob_p2 * 100:.1f}%")
             y = int(0.25 * self.height() + base1 + 3 * step)
             rect = QRect(0, y, tq_width, self.height() - y)
             prob_m2 = np.count_nonzero(
                 self.measurements2 == -1) / measurements_nb
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
-                             f"< color 2 > = {prob_m2*100:.1f}%")
+                             f"< color 2 > = {prob_m2 * 100:.1f}%")
             same_mask = self.switches1 == self.switches2
             diff_mask = self.switches1 != self.switches2
             num_same = np.sum(same_mask)
@@ -531,13 +531,13 @@ class OpenGLWidget(QOpenGLWidget):
             rect = QRect(0, 0, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              "Percentage = "
-                             f"{num_same/measurements_nb*100:.1f}%")
+                             f"{num_same / measurements_nb * 100:.1f}%")
             if num_same > 0:
                 y = int(0.25 * self.height() + base1 + 3 * step)
                 rect = QRect(0, 0, self.width(), self.height() - y)
                 painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                                  "% same results = "
-                                 f"{equal_same_mask/num_same*100:.1f}%")
+                                 f"{equal_same_mask / num_same * 100:.1f}%")
             y = int(0.25 * self.height() + base2 + 2 * step)
             rect = QRect(0, 0, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
@@ -546,13 +546,13 @@ class OpenGLWidget(QOpenGLWidget):
             rect = QRect(0, 0, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              "Percentage = "
-                             f"{num_diff/measurements_nb*100:.1f}%")
+                             f"{num_diff / measurements_nb * 100:.1f}%")
             if num_diff > 0:
                 y = int(0.25 * self.height() + base2 + 0 * step)
                 rect = QRect(0, 0, self.width(), self.height() - y)
                 painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                                  "% same results = "
-                                 f"{equal_diff_mask/num_diff*100:.1f}%")
+                                 f"{equal_diff_mask / num_diff * 100:.1f}%")
             y = int(0.25 * self.height() + base1 + 1 * step)
             rect = QRect(0, y, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
@@ -561,7 +561,7 @@ class OpenGLWidget(QOpenGLWidget):
             rect = QRect(0, y, self.width(), self.height() - y)
             painter.drawText(rect, Qt.AlignmentFlag.AlignCenter,
                              "% same results = "
-                             f"{equal/measurements_nb*100:.1f}%")
+                             f"{equal / measurements_nb * 100:.1f}%")
         if cfg.experiment == 2:
             # Compute the probability for Bell's inequality
             c01, p01 = self.calculate_probabilities_exp2(0, 1, 1, -1)
@@ -595,13 +595,13 @@ class OpenGLWidget(QOpenGLWidget):
             if cfg.verbose:
                 if c01:
                     print(f"pass {cfg.appthetaL} and not pass "
-                          f"{cfg.appthetaC}: {p01*100:.2f}%")
+                          f"{cfg.appthetaC}: {p01 * 100:.2f}%")
                 if c12:
                     print(f"pass {cfg.appthetaC} and not pass "
-                          f"{cfg.appthetaR}: {p12*100:.2f}%")
+                          f"{cfg.appthetaR}: {p12 * 100:.2f}%")
                 if c02:
                     print(f"pass {cfg.appthetaL} and not pass "
-                          f"{cfg.appthetaR}: {p02*100:.2f}%")
+                          f"{cfg.appthetaR}: {p02 * 100:.2f}%")
                 if c01 and c12 and c02:
                     print(text1)
                     print(text3)
@@ -978,5 +978,5 @@ def main():
 
 if __name__ == '__main__':
     if sys.version_info[0] < 3:
-        raise 'Must be using Python 3'
+        raise RuntimeError('Must be using Python 3')
     main()
