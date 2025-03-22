@@ -38,13 +38,13 @@ The EPR Experiment script simulates two entangled spins following the principles
 
 ### Simulation types:
 
-1. **Singlet state**: 
+1. **Singlet state**:
     - `| Psi > = 1 / sqrt(2) * (| ud > - | du >)` [DEFAULT]
-2. **Triplet state I**: 
+2. **Triplet state I**:
     - `| Psi > = 1 / sqrt(2) * (| ud > + | du >)`
-3. **Triplet state II**: 
+3. **Triplet state II**:
     - `| Psi > = 1 / sqrt(2) * (| uu > + | dd >)`
-4. **Triplet state III**: 
+4. **Triplet state III**:
     - `| Psi > = 1 / sqrt(2) * (| uu > - | dd >)`
 
 Both apparatus measure at the same time. A button allows random selection of the direction, ensuring statistical measurement in the same direction ⅓ of the time.
@@ -127,7 +127,7 @@ Contributions to the Quantum Mechanics Spin Simulation project are welcome. Whet
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE.md) file for details.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
 
